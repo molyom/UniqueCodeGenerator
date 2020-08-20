@@ -41,7 +41,7 @@ namespace Molyom
 	public class ValidateUniqueCode : MolyomPlugin
 	{
         //
-        // This Plugin will validate the details of a new AutoNumber record before it is created
+        // This Plugin will validate the details of a new unique code genertor record before it is created
         //
         // Registration Details:
         // Message: Create
@@ -199,8 +199,8 @@ namespace Molyom
 #endif
             #endregion
 
-		    context.Trace("Insert the autoNumber Name attribute");
-			target["molyom_name"] = $"AutoNumber for {target.GetAttributeValue<string>("molyom_entityname")}, {target.GetAttributeValue<string>("molyom_attributename")}";
+		    context.Trace("Insert the unique code generator Name attribute");
+			target["molyom_name"] = $"Unique Code for {target.GetAttributeValue<string>("molyom_entityname")}, {target.GetAttributeValue<string>("molyom_attributename")}";
 		}
 
 		private static AttributeMetadata GetAttributeMetadata(LocalPluginContext context, string entityName, string attributeName)
