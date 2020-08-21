@@ -1,6 +1,6 @@
 ﻿/*The MIT License (MIT)
 
-Copyright (c) 2017 Celedon Partners 
+Copyright (c) 2020 Molyom
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-// Moly : https://celedonpartners.com/blog/celedon-autonumber-solution-for-dynamics-crm/
 // Class for storing and processing Runtime Parameters in the Autonumber configuration
 
 using System;
