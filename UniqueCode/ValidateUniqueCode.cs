@@ -1,6 +1,6 @@
 ﻿/*The MIT License (MIT)
 
-Copyright (c) 2017 Celedon Partners 
+Copyright (c) 2020 Molyom
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@ SOFTWARE.
 
 // Validation on pre-create of a new Unique Code record
 
-#define VALIDATEPARAMETERS  // temporarily disable this, until it can be made to work
+#define VALIDATEPARAMETERS    // temporarily disable this, until it can be made to work
 #define DUPLICATECHECK
 
 using System;
