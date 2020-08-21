@@ -21,7 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-// Gets the next available number and adds it to the Target
+// Gets the next available code and adds it to the Target
 
 using System;
 using System.Linq;
@@ -57,7 +57,7 @@ namespace Molyom
             #region Get the list of autonumber records applicable to the target entity type
 
             var triggerEvent = context.PluginExecutionContext.MessageName;
-            var autoNumberIdList = context.OrganizationDataContext.CreateQuery("molyom_uniquecodegenerator")
+            var codegenratList = context.OrganizationDataContext.CreateQuery("molyom_uniquecodegenerator")
                                                                   .Where(a => a.GetAttributeValue<string>("molyom_entityname").Equals(context.PluginExecutionContext.PrimaryEntityName) && a.GetAttributeValue<OptionSetValue>("statecode").Value == 0 && a.GetAttributeValue<OptionSetValue>("molyom_triggerevent").Value == (triggerEvent == "Update" ? 1 : 0))
                                                                   .OrderBy(a => a.GetAttributeValue<Guid>("molyom_uniquecodegeneratorid"))  // Insure they are ordered, to prevent deadlocks
                                                                   .Select(a => a.GetAttributeValue<Guid>("molyom_uniquecodegeneratorid"));
@@ -65,11 +65,11 @@ namespace Molyom
 
             #region This loop locks the autonumber record(s) so only THIS transaction can read/write it
 
-            foreach (var autoNumberId in autoNumberIdList)
+            foreach (var codeGenerated in codegenratList)
             {
                 var lockingUpdate = new Entity("molyom_uniquecodegenerator")
                 {
-                    Id = autoNumberId,
+                    Id = codeGenerated,
                     ["molyom_preview"] = "555"
                 };
                 // Use the preview field as our "dummy" field - so we don't need a dedicated "dummy"
@@ -86,9 +86,9 @@ namespace Molyom
                 return;
             }
 
-            foreach (var autoNumberId in autoNumberIdList)
+            foreach (var codegeneratedId in codegenratList)
             {
-                var autoNumber = context.OrganizationService.Retrieve("molyom_uniquecodegenerator", autoNumberId, new ColumnSet(
+                var codeGeneratedObj = context.OrganizationService.Retrieve("molyom_uniquecodegenerator", codegeneratedId, new ColumnSet(
                     "molyom_attributename",
                     "molyom_triggerattribute",
                     "molyom_conditionaloptionset",
@@ -98,15 +98,15 @@ namespace Molyom
                     "molyom_nextcode",
                     "molyom_suffix"));
 
-                var targetAttribute = autoNumber.GetAttributeValue<string>("molyom_attributename");
+                var targetAttribute = codeGeneratedObj.GetAttributeValue<string>("molyom_attributename");
 
                 #region Check conditions that prevent creating an autonumber
 
-                if (context.PluginExecutionContext.MessageName == "Update" && !target.Contains(autoNumber.GetAttributeValue<string>("molyom_triggerattribute")))
+                if (context.PluginExecutionContext.MessageName == "Update" && !target.Contains(codeGeneratedObj.GetAttributeValue<string>("molyom_triggerattribute")))
                 {
                     continue;  // Continue, if this is an Update event and the target does not contain the trigger value
                 }
-                else if ((autoNumber.Contains("molyom_conditionaloptionset") && (!target.Contains(autoNumber.GetAttributeValue<string>("molyom_conditionaloptionset")) || target.GetAttributeValue<OptionSetValue>(autoNumber.GetAttributeValue<string>("molyom_conditionaloptionset")).Value != autoNumber.GetAttributeValue<int>("molyom_conditionalvalue"))))
+                else if ((codeGeneratedObj.Contains("molyom_conditionaloptionset") && (!target.Contains(codeGeneratedObj.GetAttributeValue<string>("molyom_conditionaloptionset")) || target.GetAttributeValue<OptionSetValue>(codeGeneratedObj.GetAttributeValue<string>("molyom_conditionaloptionset")).Value != codeGeneratedObj.GetAttributeValue<int>("molyom_conditionalvalue"))))
                 {
                     continue;  // Continue, if this is a conditional optionset
                 }
@@ -124,44 +124,31 @@ namespace Molyom
 
                 #region Create the Unique Code
 
-                var preGenerated = false;// autoNumber.GetAttributeValue<bool>("cel_ispregenerated");
                 char pad = '0';
 
-                if (preGenerated)  // Pull number from a pre-generated list
-                {
-                    var preGenNumber = context.OrganizationDataContext.CreateQuery("cel_generatednumber").Where(n => n.GetAttributeValue<EntityReference>("cel_parentautonumberid").Id == autoNumberId && n.GetAttributeValue<OptionSetValue>("statecode").Value == 0).OrderBy(n => n.GetAttributeValue<int>("cel_ordinal")).Take(1).ToList().FirstOrDefault();
-                    target[targetAttribute] = preGenNumber["cel_number"] ?? throw new InvalidPluginExecutionException("No available numbers for this record.  Please contact your System Administrator.");
-
-                    var deactivatedNumber = new Entity("cel_generatednumber");
-                    deactivatedNumber["statecode"] = new OptionSetValue(1);
-                    deactivatedNumber.Id = preGenNumber.Id;
-
-                    context.OrganizationService.Update(deactivatedNumber);
-                }
-                else  // Do a normal number generation
-                {
-                    var charLength = autoNumber.GetAttributeValue<int>("molyom_characterlength");
+                
+                    var charLength = codeGeneratedObj.GetAttributeValue<int>("molyom_characterlength");
                    
-                    var prefix = context.OrganizationService.ReplaceParameters(target, autoNumber.GetAttributeValue<string>("molyom_prefix"));
+                    var prefix = context.OrganizationService.ReplaceParameters(target, codeGeneratedObj.GetAttributeValue<string>("molyom_prefix"));
 
 
                     // var number = charLength == 0 ? "" : autoNumber.GetAttributeValue<string>("molyom_nextcode").ToString("D" + charLength);
-                    var number = charLength == 0 ? "" : autoNumber.GetAttributeValue<string>("molyom_nextcode").PadLeft(charLength, pad);
+                    var number = charLength == 0 ? "" : codeGeneratedObj.GetAttributeValue<string>("molyom_nextcode").PadLeft(charLength, pad);
                   
                     // string number = autoNumber.GetAttributeValue<string>("molyom_nextcode") == null ? new string('0', charLength) : autoNumber.GetAttributeValue<string>("molyom_nextcode").PadRight(charLength).Substring(0, charLength);
 
-                    var postfix = context.OrganizationService.ReplaceParameters(target, autoNumber.GetAttributeValue<string>("molyom_suffix"));
+                    var postfix = context.OrganizationService.ReplaceParameters(target, codeGeneratedObj.GetAttributeValue<string>("molyom_suffix"));
                     // Generate number and insert into target Record
                     target[targetAttribute] = $"{prefix}{number}{postfix}";
 
-                }
+                
 
                 // Increment next number in db
                 var updatedAutoNumber = new Entity("molyom_uniquecodegenerator")
                 {
-                    Id = autoNumber.Id,
+                    Id = codeGeneratedObj.Id,
                     // Aqui tengo que incrementar un codigo.
-                    ["molyom_nextcode"] = Increment(autoNumber.GetAttributeValue<string>("molyom_nextcode").PadLeft(autoNumber.GetAttributeValue<int>("molyom_characterlength"), pad), Mode.AlphaNumeric),   // + "1",
+                    ["molyom_nextcode"] = Increment(codeGeneratedObj.GetAttributeValue<string>("molyom_nextcode").PadLeft(codeGeneratedObj.GetAttributeValue<int>("molyom_characterlength"), pad), Mode.AlphaNumeric),   // + "1",
                     ["molyom_preview"] = target[targetAttribute]
                 };
 
@@ -214,15 +201,6 @@ namespace Molyom
         }
     }
 }
-
-
-        // Testing
-        //var test1 = Increment("0001", Mode.AlphaNumeric);
-        //var test2 = Increment("aab2z", Mode.AlphaNumeric);
-        //var test3 = Increment("0009", Mode.Numeric);
-        //var test4 = Increment("zz", Mode.Alpha);
-        //var test5 = Increment("999", Mode.Numeric);
-
 
 
 
